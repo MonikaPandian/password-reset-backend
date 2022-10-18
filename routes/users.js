@@ -17,11 +17,6 @@ router.post("/signup", async (request, response) => {
         return;
     }
 
-    if (!/^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@!#%$]).{8,}$/g.test(password)) {
-        response.status(400).send({ message: "Password pattern does not match" })
-        return;
-    }
-
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt)
     const result = await client.db("b37wd").collection("users").insertOne({ email: email, password: hashedPassword });
