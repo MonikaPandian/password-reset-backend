@@ -106,7 +106,8 @@ router.post("/reset-password/:id/:token", async (request, response) => {
     const secret = process.env.SECRET_KEY + oldUser.password;  
     try{
         const verify = jwt.verify(token,secret)
-        const encryptedPassword = await bcrypt.hash(password,10)
+        const salt = await bcrypt.genSalt(10);
+        const encryptedPassword = await bcrypt.hash(password,salt)
         const updatePassword = await client.db("b37wd").collection("users").updateOne({ _id: ObjectId(id) }, { $set: {password : encryptedPassword} })
         response.send({message: "Password updated"})
     }
