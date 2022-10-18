@@ -39,7 +39,7 @@ router.post("/forgot-password", async (request, response) => {
         }
         //User exist and now create a one time link valid for 15 minutes
         const token = jwt.sign(payload, secret, { expiresIn: '15m' });
-        const link = `http://localhost:3000/reset-password/${oldUser._id}/${token}`;
+        const link = `https://password-reset-bdc407.netlify.app/reset-password/${oldUser._id}/${token}`;
         var transporter = NodeMailer.createTransport({
             service: 'gmail',
             auth: {
