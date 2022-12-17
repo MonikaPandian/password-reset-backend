@@ -60,7 +60,7 @@ router.post("/forgot-password", async (request, response) => {
                   <p>This link is valid for 15 minutes from your request initiation for password recovery.</p>`
         };
 
-        transporter.sendMail(mailOptions).then((response) => console.log(response)).catch((error) => console.log(error));
+        const message = await transporter.sendMail(mailOptions).then((response) => console.log(response)).catch((error) => console.log(error));
         response.send({ message: "Email sent successfully" })
     }
     catch (error) {
