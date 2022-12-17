@@ -1,4 +1,4 @@
-import express from "express";
+import express, { response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { client } from "../index.js";
@@ -17,21 +17,25 @@ router.post("/signup", async (request, response) => {
         return;
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt)
-    const result = await client.db("b37wd").collection("users").insertOne({ email: email, password: hashedPassword });
-    response.send(result)
+    try {
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt)
+        const result = await client.db("b37wd").collection("users").insertOne({ email: email, password: hashedPassword });
+        response.send(result)
+    } catch (error) {
+        response.status(500).send("Internal server error")
+    }
 })
 
 router.post("/forgot-password", async (request, response) => {
     const { email } = request.body;
-    try{
-        //Make sure user exists in database
-        const oldUser = await client.db("b37wd").collection("users").findOne({ email: email })
-        if (!oldUser) {
-            response.status(400).send({ message: "User not exists!!" })
-            return;
-        }
+    //Make sure user exists in database
+    const oldUser = await client.db("b37wd").collection("users").findOne({ email: email })
+    if (!oldUser) {
+        response.status(400).send({ message: "User not exists!!" })
+        return;
+    }
+    try {
         const secret = process.env.SECRET_KEY + oldUser.password
         const payload = {
             email: oldUser.email,
@@ -44,7 +48,7 @@ router.post("/forgot-password", async (request, response) => {
             service: 'gmail',
             auth: {
                 user: 'panmonikmm@gmail.com',
-                pass: 'lxkugchepioxgtmr'
+                pass: process.env.EMAIL_APP_PASSWORD
             }
         });
         var mailOptions = {
@@ -55,22 +59,13 @@ router.post("/forgot-password", async (request, response) => {
                   <a href = ${link}>Click Here</a><br>
                   <p>This link is valid for 15 minutes from your request initiation for password recovery.</p>`
         };
-    
-        transporter.sendMail(mailOptions, function (error, info) {
-            if (error) {
-                console.log(error);
-            }
-            else {
-                console.log('Email sent:' + info.response);
-            }
-        })  
-        response.send({message: "Email sent successfully"})
-    } 
-    catch(error){
-        response.send({ status: "error", data: error})
-    }
 
-   
+        transporter.sendMail(mailOptions).then((response) => console.log(response)).catch((error) => console.log(error));
+        response.send({ message: "Email sent successfully" })
+    }
+    catch (error) {
+        response.send({ status: "error", data: error })
+    }
 })
 
 //reset password
@@ -78,19 +73,19 @@ router.get("/reset-password/:id/:token", async (request, response) => {
     const { id, token } = request.params;
     //check if this id exist in database
     const oldUser = await client.db("b37wd").collection("users").findOne({ _id: ObjectId(id) })
-    if(!oldUser){
-        response.status(400).send({ message: "User not exists!!"})
+    if (!oldUser) {
+        response.status(400).send({ message: "User not exists!!" })
         return;
     }
-    const secret = process.env.SECRET_KEY + oldUser.password;  
-    try{
-        const verify = jwt.verify(token,secret)
+    const secret = process.env.SECRET_KEY + oldUser.password;
+    try {
+        const verify = jwt.verify(token, secret)
         response.send("Verified")
     }
-    catch(error){
+    catch (error) {
         response.send("Not Verified")
-    }           
     }
+}
 )
 
 router.post("/reset-password/:id/:token", async (request, response) => {
@@ -99,21 +94,22 @@ router.post("/reset-password/:id/:token", async (request, response) => {
 
     //check if this id exist in database
     const oldUser = await client.db("b37wd").collection("users").findOne({ _id: ObjectId(id) })
-    if(!oldUser){
-        response.status(400).send({ message: "User not exists!!"})
+    if (!oldUser) {
+        response.status(400).send({ message: "User not exists!!" })
         return;
     }
-    const secret = process.env.SECRET_KEY + oldUser.password;  
-    try{
-        const verify = jwt.verify(token,secret)
+    const secret = process.env.SECRET_KEY + oldUser.password;
+    try {
+        const verify = jwt.verify(token, secret)
+        console.log(verify)
         const salt = await bcrypt.genSalt(10);
-        const encryptedPassword = await bcrypt.hash(password,salt)
-        const updatePassword = await client.db("b37wd").collection("users").updateOne({ _id: ObjectId(id) }, { $set: {password : encryptedPassword} })
-        response.send({message: "Password updated"})
+        const encryptedPassword = await bcrypt.hash(password, salt)
+        const updatePassword = await client.db("b37wd").collection("users").updateOne({ _id: ObjectId(id) }, { $set: { password: encryptedPassword } })
+        response.send({ message: "Password updated" })
     }
-    catch(error){
-        response.send({message: "Something went wrong"})
-    }           
+    catch (error) {
+        response.send({ message: "Something went wrong" })
+    }
 })
 
 
